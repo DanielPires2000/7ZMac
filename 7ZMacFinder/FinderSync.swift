@@ -1,0 +1,165 @@
+//
+//  FinderSync.swift
+//  7ZMacFinder
+//
+//  Created by Daniel Pires on 16/02/2026.
+//
+
+import Cocoa
+import FinderSync
+import os
+
+class FinderSync: FIFinderSync {
+    
+    private static let logger = Logger(
+        subsystem: "com.danielpires.SevenZMac.FinderSync",
+        category: "finder"
+    )
+    
+    // MARK: - Supported Archive Extensions
+    // Keep in sync with SupportedArchiveTypes.swift in the main app target.
+    
+    private let archiveExtensions: Set<String> = {
+        var exts: Set<String> = [
+            "7z", "zip", "tar", "gz", "bz2", "xz", "rar",
+            "iso", "cab", "lzma", "lzh", "arj", "z", "cpio",
+            "rpm", "deb", "wim", "vhd", "vhdx",
+            "tgz", "tbz2", "txz"
+        ]
+        // Add split volume extensions: 001-999, z01-z99
+        for i in 1...999 {
+            exts.insert(String(format: "%03d", i))
+        }
+        for i in 1...99 {
+            exts.insert(String(format: "z%02d", i))
+        }
+        return exts
+    }()
+    
+    // MARK: - Init
+    
+    override init() {
+        super.init()
+        Self.logger.info("Launched from \(Bundle.main.bundlePath)")
+        FIFinderSyncController.default().directoryURLs = [URL(fileURLWithPath: "/")]
+    }
+    
+    // MARK: - Toolbar
+    
+    override var toolbarItemName: String { "7ZMac" }
+    override var toolbarItemToolTip: String { "7ZMac Archive Manager" }
+    override var toolbarItemImage: NSImage {
+        NSImage(named: NSImage.cautionName)!
+    }
+    
+    // MARK: - Context Menu
+    
+    override func menu(for menuKind: FIMenuKind) -> NSMenu {
+        let menu = NSMenu(title: "7ZMac")
+        
+        let selectedItems = FIFinderSyncController.default().selectedItemURLs() ?? []
+        let hasArchives = selectedItems.contains { archiveExtensions.contains($0.pathExtension.lowercased()) }
+        let hasFiles = !selectedItems.isEmpty
+        
+        // ── Compression Options ──
+        if hasFiles {
+            menu.addItem(NSMenuItem(title: "Add to Archive...", action: #selector(addToArchive(_:)), keyEquivalent: ""))
+            
+            if let first = selectedItems.first {
+                let name = first.deletingPathExtension().lastPathComponent
+                menu.addItem(NSMenuItem(title: "Compress to \"\(name).7z\"", action: #selector(quickCompress7z(_:)), keyEquivalent: ""))
+                menu.addItem(NSMenuItem(title: "Compress to \"\(name).zip\"", action: #selector(quickCompressZip(_:)), keyEquivalent: ""))
+            }
+        }
+        
+        // ── Extraction Options ──
+        if hasArchives {
+            if hasFiles { menu.addItem(NSMenuItem.separator()) }
+            
+            menu.addItem(NSMenuItem(title: "Extract files...", action: #selector(extractFiles(_:)), keyEquivalent: ""))
+            menu.addItem(NSMenuItem(title: "Extract Here", action: #selector(extractHere(_:)), keyEquivalent: ""))
+            
+            if let firstArchive = selectedItems.first(where: { archiveExtensions.contains($0.pathExtension.lowercased()) }) {
+                let folderName = firstArchive.deletingPathExtension().lastPathComponent
+                menu.addItem(NSMenuItem(title: "Extract to \"\(folderName)/\"", action: #selector(extractToSubfolder(_:)), keyEquivalent: ""))
+            }
+            
+            menu.addItem(NSMenuItem.separator())
+            menu.addItem(NSMenuItem(title: "Test Archive", action: #selector(testArchive(_:)), keyEquivalent: ""))
+        }
+        
+        return menu
+    }
+    
+    // MARK: - Compression Actions
+    
+    @objc func addToArchive(_ sender: AnyObject?) {
+        guard let items = FIFinderSyncController.default().selectedItemURLs(), !items.isEmpty else { return }
+        openMainApp(action: "addToArchive", paths: items.map { $0.path })
+    }
+    
+    @objc func quickCompress7z(_ sender: AnyObject?) {
+        guard let items = FIFinderSyncController.default().selectedItemURLs(), !items.isEmpty else { return }
+        openMainApp(action: "compress7z", paths: items.map { $0.path })
+    }
+    
+    @objc func quickCompressZip(_ sender: AnyObject?) {
+        guard let items = FIFinderSyncController.default().selectedItemURLs(), !items.isEmpty else { return }
+        openMainApp(action: "compressZip", paths: items.map { $0.path })
+    }
+    
+    // MARK: - Extraction Actions
+    
+    @objc func extractFiles(_ sender: AnyObject?) {
+        guard let items = FIFinderSyncController.default().selectedItemURLs() else { return }
+        let paths = items.filter { archiveExtensions.contains($0.pathExtension.lowercased()) }.map { $0.path }
+        openMainApp(action: "extractFiles", paths: paths)
+    }
+    
+    @objc func extractHere(_ sender: AnyObject?) {
+        guard let items = FIFinderSyncController.default().selectedItemURLs() else { return }
+        let paths = items.filter { archiveExtensions.contains($0.pathExtension.lowercased()) }.map { $0.path }
+        openMainApp(action: "extractHere", paths: paths)
+    }
+    
+    @objc func extractToSubfolder(_ sender: AnyObject?) {
+        guard let items = FIFinderSyncController.default().selectedItemURLs() else { return }
+        let paths = items.filter { archiveExtensions.contains($0.pathExtension.lowercased()) }.map { $0.path }
+        openMainApp(action: "extractToSubfolder", paths: paths)
+    }
+    
+    @objc func testArchive(_ sender: AnyObject?) {
+        guard let items = FIFinderSyncController.default().selectedItemURLs() else { return }
+        let paths = items.filter { archiveExtensions.contains($0.pathExtension.lowercased()) }.map { $0.path }
+        openMainApp(action: "testArchive", paths: paths)
+    }
+    
+    // MARK: - Communication with Main App (background)
+    
+    private func openMainApp(action: String, paths: [String]) {
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: paths),
+              let base64 = jsonData.base64EncodedString().addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            Self.logger.error("Failed to encode paths")
+            return
+        }
+        
+        let urlString = "sevenzma://\(action)?paths=\(base64)"
+        guard let url = URL(string: urlString) else {
+            Self.logger.error("Failed to create URL")
+            return
+        }
+        
+        Self.logger.info("Sending action '\(action)' to main app")
+        
+        // "addToArchive" and "extractFiles" need UI, so activate the app
+        let needsUI = (action == "addToArchive" || action == "extractFiles")
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = needsUI
+        
+        NSWorkspace.shared.open(url, configuration: config) { _, error in
+            if let error = error {
+                Self.logger.error("Failed to open URL: \(error.localizedDescription)")
+            }
+        }
+    }
+}
