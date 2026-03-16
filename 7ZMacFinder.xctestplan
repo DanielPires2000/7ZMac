@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "BA9AE509-B36B-4BEC-92F0-77643EDFB3A8",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:7ZMac.xcodeproj",
+      "identifier" : "3FE81FB42F42605900392A57",
+      "name" : "7ZMac"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:7ZMac.xcodeproj",
+        "identifier" : "3F3EEBDA2F42A98E007AC1FE",
+        "name" : "7ZMacTests"
+      }
+    }
+  ],
+  "version" : 1
+}

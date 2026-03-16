@@ -1,11 +1,11 @@
 import Foundation
 
-struct AppNotificationContent: Equatable {
+nonisolated struct AppNotificationContent: Equatable {
     let title: String
     let message: String
 }
 
-enum FinderActionNotificationFormatter {
+nonisolated enum FinderActionNotificationFormatter {
     static func extractionCompleted(archiveName: String) -> AppNotificationContent {
         AppNotificationContent(title: "7ZMac", message: "Extracted \(archiveName)")
     }

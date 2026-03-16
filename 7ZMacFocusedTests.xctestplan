@@ -1,0 +1,35 @@
+{
+  "configurations" : [
+    {
+      "id" : "2F9A9F37-3A3A-4E59-8E31-B113AA94A001",
+      "name" : "Default",
+      "options" : {
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:7ZMac.xcodeproj",
+      "identifier" : "3FE81FB42F42605900392A57",
+      "name" : "7ZMac"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "selectedTests" : [
+        "ActionRouterTests",
+        "CompressionOptionsTests",
+        "FinderActionExecutorTests",
+        "FinderActionNotificationFormatterTests",
+        "SplitArchiveDetectorTests"
+      ],
+      "target" : {
+        "containerPath" : "container:7ZMac.xcodeproj",
+        "identifier" : "3F3EEBDA2F42A98E007AC1FE",
+        "name" : "7ZMacTests"
+      }
+    }
+  ],
+  "version" : 1
+}
