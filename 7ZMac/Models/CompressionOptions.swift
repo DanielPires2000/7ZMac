@@ -1,5 +1,45 @@
 import Foundation
 
+enum QuickCompressionFormat {
+    case sevenZ
+    case zip
+
+    var archiveExtension: String {
+        switch self {
+        case .sevenZ:
+            return "7z"
+        case .zip:
+            return "zip"
+        }
+    }
+
+    var archiveTypeFlag: String {
+        switch self {
+        case .sevenZ:
+            return "-t7z"
+        case .zip:
+            return "-tzip"
+        }
+    }
+}
+
+struct QuickCompressionCommand {
+    let title: String
+    let archiveURL: URL
+    let arguments: [String]
+
+    init?(format: QuickCompressionFormat, files: [URL]) {
+        guard let first = files.first else { return nil }
+
+        let archiveName = first.deletingPathExtension().lastPathComponent + ".\(format.archiveExtension)"
+        let archiveURL = first.deletingLastPathComponent().appendingPathComponent(archiveName)
+
+        self.title = archiveName
+        self.archiveURL = archiveURL
+        self.arguments = ["a", format.archiveTypeFlag, archiveURL.path] + files.map { $0.path }
+    }
+}
+
 /// All compression options for the "Add to Archive" dialog.
 struct CompressionOptions {
     // Left column

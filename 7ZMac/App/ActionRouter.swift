@@ -1,42 +1,88 @@
 import SwiftUI
 import os
-import UserNotifications
+
+enum FinderAction: String {
+    case addToArchive
+    case extractFiles
+    case compress7z
+    case compressZip
+    case extractHere
+    case extractToSubfolder
+    case testArchive
+}
+
+struct FinderActionRequest {
+    let action: FinderAction
+    let filePaths: [String]
+
+    init(action: FinderAction, filePaths: [String]) {
+        self.action = action
+        self.filePaths = filePaths
+    }
+
+    var fileURLs: [URL] {
+        filePaths.map { URL(fileURLWithPath: $0) }
+    }
+
+    init?(url: URL) {
+        guard url.scheme == "sevenzma",
+              let action = FinderAction(rawValue: url.host ?? ""),
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let base64Param = components.queryItems?.first(where: { $0.name == "paths" })?.value,
+              let jsonData = Data(base64Encoded: base64Param),
+              let filePaths = try? JSONSerialization.jsonObject(with: jsonData) as? [String] else {
+            return nil
+        }
+
+        self.action = action
+        self.filePaths = filePaths
+    }
+}
 
 /// Routes Finder extension URL actions to the appropriate handlers.
 @MainActor
 final class ActionRouter {
     
-    private let windowManager: WindowManager
+    private let windowManager: WindowManaging
+    private let dialogService: FileDialogServiceProtocol
+    private let actionExecutor: FinderActionExecuting
+    private let activateApp: @MainActor () -> Void
+    private let notificationSink: @MainActor (String, String) -> Void
     
-    init(windowManager: WindowManager) {
+    init(
+        windowManager: WindowManaging,
+        dialogService: FileDialogServiceProtocol,
+        actionExecutor: FinderActionExecuting,
+        activateApp: @escaping @MainActor () -> Void,
+        notificationSink: @escaping @MainActor (String, String) -> Void
+    ) {
         self.windowManager = windowManager
+        self.dialogService = dialogService
+        self.actionExecutor = actionExecutor
+        self.activateApp = activateApp
+        self.notificationSink = notificationSink
     }
     
     // MARK: - URL Routing
     
     func handleFinderAction(url: URL) {
-        guard url.scheme == "sevenzma" else { return }
-        
-        let action = url.host ?? ""
-        
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              let base64Param = components.queryItems?.first(where: { $0.name == "paths" })?.value,
-              let jsonData = Data(base64Encoded: base64Param),
-              let paths = try? JSONSerialization.jsonObject(with: jsonData) as? [String] else {
+        guard let request = FinderActionRequest(url: url) else {
             Log.app.error("Failed to parse URL: \(url.absoluteString)")
             return
         }
-        
-        Log.app.info("Received action '\(action)' with \(paths.count) paths")
-        let fileURLs = paths.map { URL(fileURLWithPath: $0) }
-        
-        if action == "addToArchive" {
-            handleAddToArchive(filePaths: paths, fileURLs: fileURLs)
-        } else if action == "extractFiles" {
-            handleExtractFiles(fileURLs: fileURLs)
-        } else {
+
+        Log.app.info("Received action '\(request.action.rawValue)' with \(request.filePaths.count) paths")
+
+        switch request.action {
+        case .addToArchive:
+            handleAddToArchive(filePaths: request.filePaths, fileURLs: request.fileURLs)
+
+        case .extractFiles:
+            handleExtractFiles(fileURLs: request.fileURLs)
+
+        default:
             Task { @MainActor in
-                await processAction(action, files: fileURLs)
+                await processAction(request)
             }
         }
     }
@@ -60,101 +106,23 @@ final class ActionRouter {
     // MARK: - Extract Files (with folder picker)
     
     private func handleExtractFiles(fileURLs: [URL]) {
-        NSApp.activate(ignoringOtherApps: true)
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.canCreateDirectories = true
-        panel.message = "Choose extraction destination"
-        panel.prompt = "Extract"
-        
-        if panel.runModal() == .OK, let destination = panel.url {
+        activateApp()
+        if let destination = dialogService.chooseExtractionDestination() {
             Task { @MainActor in
-                await self.extractFiles(fileURLs, to: destination)
+                await self.actionExecutor.extract(files: fileURLs, to: destination)
             }
         }
     }
-    
+
     // MARK: - Background Actions
-    
-    private func processAction(_ action: String, files: [URL]) async {
-        let service = DIContainer.shared.resolve(ArchiveServiceProtocol.self)
-        
-        do {
-            switch action {
-            case "compress7z":
-                guard let first = files.first else { return }
-                let name = first.deletingPathExtension().lastPathComponent + ".7z"
-                let archiveURL = first.deletingLastPathComponent().appendingPathComponent(name)
-                let args = ["a", "-t7z", archiveURL.path] + files.map { $0.path }
-                windowManager.showProgressWindow(title: name, arguments: args)
-                
-            case "compressZip":
-                guard let first = files.first else { return }
-                let name = first.deletingPathExtension().lastPathComponent + ".zip"
-                let archiveURL = first.deletingLastPathComponent().appendingPathComponent(name)
-                let args = ["a", "-tzip", archiveURL.path] + files.map { $0.path }
-                windowManager.showProgressWindow(title: name, arguments: args)
-                
-            case "extractHere":
-                let resolved = SplitArchiveDetector.resolveForExtraction(files: files)
-                for file in resolved {
-                    try await service.extract(archive: file, to: file.deletingLastPathComponent())
-                    showNotification(title: "7ZMac", message: "Extracted \(file.lastPathComponent)")
-                }
-                
-            case "extractToSubfolder":
-                let resolved = SplitArchiveDetector.resolveForExtraction(files: files)
-                for file in resolved {
-                    let folderName: String
-                    if let baseName = SplitArchiveDetector.baseName(of: file) {
-                        folderName = (baseName as NSString).deletingPathExtension
-                    } else {
-                        folderName = file.deletingPathExtension().lastPathComponent
-                    }
-                    let dest = file.deletingLastPathComponent().appendingPathComponent(folderName)
-                    try? FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
-                    try await service.extract(archive: file, to: dest)
-                    showNotification(title: "7ZMac", message: "Extracted to \(folderName)/")
-                }
-                
-            case "testArchive":
-                let resolved = SplitArchiveDetector.resolveForExtraction(files: files)
-                for file in resolved {
-                    let items = try await service.listContents(archive: file)
-                    showNotification(title: "7ZMac", message: "\(file.lastPathComponent): OK ✓ (\(items.count) items)")
-                }
-                
-            default:
-                Log.app.warning("Unknown action: \(action)")
-            }
-        } catch {
-            showNotification(title: "7ZMac — Error", message: error.localizedDescription)
-        }
-    }
-    
-    private func extractFiles(_ files: [URL], to destination: URL) async {
-        let service = DIContainer.shared.resolve(ArchiveServiceProtocol.self)
-        let resolved = SplitArchiveDetector.resolveForExtraction(files: files)
-        do {
-            for file in resolved {
-                try await service.extract(archive: file, to: destination)
-                showNotification(title: "7ZMac", message: "Extracted \(file.lastPathComponent)")
-            }
-        } catch {
-            showNotification(title: "7ZMac — Error", message: error.localizedDescription)
-        }
+
+    private func processAction(_ request: FinderActionRequest) async {
+        await actionExecutor.execute(request)
     }
     
     // MARK: - Notifications
     
     func showNotification(title: String, message: String) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = message
-        content.sound = .default
-        
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+        notificationSink(title, message)
     }
 }

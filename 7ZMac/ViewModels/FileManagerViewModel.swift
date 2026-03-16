@@ -1,7 +1,5 @@
 import Foundation
-import AppKit
 internal import Combine
-import UniformTypeIdentifiers
 
 /// Central ViewModel for the file manager. Handles filesystem browsing,
 /// archive browsing, navigation history, and user actions.
@@ -33,6 +31,19 @@ final class FileManagerViewModel: ObservableObject {
     
     var canGoBack: Bool { !backStack.isEmpty }
     var canGoForward: Bool { !forwardStack.isEmpty }
+
+    var homeDirectory: URL { fileSystemService.homeDirectory }
+
+    var favoriteLocations: [(name: String, icon: String, colorName: String, url: URL)] {
+        [
+            ("Home", "house.fill", "blue", fileSystemService.homeDirectory),
+            ("Desktop", "desktopcomputer", "blue", fileSystemService.desktopDirectory),
+            ("Documents", "doc.fill", "blue", fileSystemService.documentsDirectory),
+            ("Downloads", "arrow.down.circle.fill", "blue", fileSystemService.downloadsDirectory),
+            ("Root", "externaldrive.fill", "gray", URL(fileURLWithPath: "/")),
+            ("Applications", "app.fill", "purple", URL(fileURLWithPath: "/Applications"))
+        ]
+    }
     
     var canGoUp: Bool {
         switch navigationMode {
@@ -62,6 +73,7 @@ final class FileManagerViewModel: ObservableObject {
     
     private let fileSystemService: FileSystemServiceProtocol
     private let archiveService: ArchiveServiceProtocol
+    private let dialogService: FileDialogServiceProtocol
     
     // MARK: - Init
 
@@ -70,6 +82,7 @@ final class FileManagerViewModel: ObservableObject {
         let fs = container.resolve(FileSystemServiceProtocol.self)
         self.fileSystemService = fs
         self.archiveService = container.resolve(ArchiveServiceProtocol.self)
+        self.dialogService = container.resolve(FileDialogServiceProtocol.self)
         self.currentPath = fs.homeDirectory
     }
 
@@ -137,6 +150,10 @@ final class FileManagerViewModel: ObservableObject {
             loadCurrentDirectory()
         }
     }
+
+    func navigateHome() {
+        navigateTo(fileSystemService.homeDirectory)
+    }
     
     // MARK: - Double Click
     
@@ -189,13 +206,7 @@ final class FileManagerViewModel: ObservableObject {
             archiveURL = selected.url
         }
         
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.canCreateDirectories = true
-        panel.message = "Choose destination for extraction"
-        
-        guard panel.runModal() == .OK, let destination = panel.url else { return }
+        guard let destination = dialogService.chooseExtractionDestination() else { return }
         
         isProcessing = true
         errorMessage = nil
@@ -203,7 +214,7 @@ final class FileManagerViewModel: ObservableObject {
         Task {
             do {
                 try await archiveService.extract(archive: archiveURL, to: destination)
-                NSWorkspace.shared.open(destination) // Open the destination folder
+                fileSystemService.openWithDefaultApp(destination)
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -219,12 +230,7 @@ final class FileManagerViewModel: ObservableObject {
         
         guard !selectedURLs.isEmpty else { return }
         
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.init(filenameExtension: "7z")!]
-        panel.nameFieldStringValue = "archive.7z"
-        panel.message = "Choose where to save the archive"
-        
-        guard panel.runModal() == .OK, let destination = panel.url else { return }
+        guard let destination = dialogService.chooseArchiveDestination(defaultFileName: "archive.7z") else { return }
         
         isProcessing = true
         errorMessage = nil

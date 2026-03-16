@@ -1,12 +1,27 @@
 import SwiftUI
 
+@MainActor
+protocol WindowManaging: AnyObject {
+    func showAddToArchiveDialog(
+        filePaths: [String],
+        onCompress: @escaping (String, CompressionOptions) -> Void
+    )
+
+    func showProgressWindow(title: String, arguments: [String])
+}
+
 /// Manages the creation and lifecycle of key windows
 /// (Add to Archive dialog, Compression Progress).
 @MainActor
-final class WindowManager {
+final class WindowManager: WindowManaging {
+    private let executablePath: String
     
     private var addToArchiveWindow: NSWindow?
     private var progressWindow: NSWindow?
+
+    init(executablePath: String) {
+        self.executablePath = executablePath
+    }
     
     // MARK: - Add to Archive
     
@@ -75,10 +90,6 @@ final class WindowManager {
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         
-        // Resolve the executable path
-        let service = DIContainer.shared.resolve(ArchiveServiceProtocol.self) as? SevenZipService
-        let execPath = service?.executablePathValue ?? "/opt/homebrew/bin/7zz"
-        
-        tracker.run(executablePath: execPath, arguments: arguments)
+        tracker.run(executablePath: executablePath, arguments: arguments)
     }
 }

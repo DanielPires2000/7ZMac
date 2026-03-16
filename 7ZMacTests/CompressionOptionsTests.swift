@@ -62,6 +62,32 @@ final class CompressionOptionsTests: XCTestCase {
         
         XCTAssertTrue(args.contains("-txz"))
     }
+
+    // MARK: - Quick Compression Commands
+
+    func testQuickCompressionCommandFor7z() {
+        let files = [URL(fileURLWithPath: "/tmp/a.txt"), URL(fileURLWithPath: "/tmp/b.txt")]
+
+        let command = QuickCompressionCommand(format: .sevenZ, files: files)
+
+        XCTAssertEqual(command?.title, "a.7z")
+        XCTAssertEqual(command?.archiveURL.path, "/tmp/a.7z")
+        XCTAssertEqual(command?.arguments, ["a", "-t7z", "/tmp/a.7z", "/tmp/a.txt", "/tmp/b.txt"])
+    }
+
+    func testQuickCompressionCommandForZip() {
+        let files = [URL(fileURLWithPath: "/tmp/a.txt"), URL(fileURLWithPath: "/tmp/b.txt")]
+
+        let command = QuickCompressionCommand(format: .zip, files: files)
+
+        XCTAssertEqual(command?.title, "a.zip")
+        XCTAssertEqual(command?.archiveURL.path, "/tmp/a.zip")
+        XCTAssertEqual(command?.arguments, ["a", "-tzip", "/tmp/a.zip", "/tmp/a.txt", "/tmp/b.txt"])
+    }
+
+    func testQuickCompressionCommandRejectsEmptyFiles() {
+        XCTAssertNil(QuickCompressionCommand(format: .sevenZ, files: []))
+    }
     
     // MARK: - Compression Level
     

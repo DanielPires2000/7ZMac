@@ -30,6 +30,10 @@ extension FileItem {
 final class MockArchiveService: ArchiveServiceProtocol {
     var mockItems: [ArchiveItem] = ArchiveItem.mocks
     var shouldThrow: Bool = false
+    var extractedArchives: [(archive: URL, destination: URL)] = []
+    var compressedArchives: [(files: [URL], archive: URL)] = []
+    var onExtract: ((URL, URL) -> Void)?
+    var onCompress: (([URL], URL) -> Void)?
     
     func listContents(archive: URL) async throws -> [ArchiveItem] {
         if shouldThrow { throw SevenZipError.executableNotFound }
@@ -38,10 +42,14 @@ final class MockArchiveService: ArchiveServiceProtocol {
     
     func extract(archive: URL, to destination: URL) async throws {
         if shouldThrow { throw SevenZipError.executableNotFound }
+        extractedArchives.append((archive, destination))
+        onExtract?(archive, destination)
     }
     
     func compress(files: [URL], to archive: URL) async throws {
         if shouldThrow { throw SevenZipError.executableNotFound }
+        compressedArchives.append((files, archive))
+        onCompress?(files, archive)
     }
     
     func compress(files: [URL], to archive: URL, options: CompressionOptions) async throws {

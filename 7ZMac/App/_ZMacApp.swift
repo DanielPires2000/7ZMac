@@ -26,6 +26,8 @@ struct _ZMacApp: App {
         let container = DIContainer.shared
         container.registerSingleton(ArchiveServiceProtocol.self) { SevenZipService() }
         container.registerSingleton(FileSystemServiceProtocol.self) { FileSystemService() }
+        container.registerSingleton(FileDialogServiceProtocol.self) { FileDialogService() }
+        container.registerSingleton(NotificationServiceProtocol.self) { NotificationService() }
     }
 }
 
@@ -58,10 +60,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @MainActor
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Initialize UI/MainActor dependencies
-        let wm = WindowManager()
+        let container = DIContainer.shared
+        let archiveService = container.resolve(ArchiveServiceProtocol.self)
+        let fileSystemService = container.resolve(FileSystemServiceProtocol.self)
+        let dialogService = container.resolve(FileDialogServiceProtocol.self)
+        let notificationService = container.resolve(NotificationServiceProtocol.self)
+
+        let executablePath = (archiveService as? SevenZipService)?.executablePathValue ?? "/opt/homebrew/bin/7zz"
+        let wm = WindowManager(executablePath: executablePath)
+        let actionExecutor = FinderActionExecutor(
+            windowManager: wm,
+            archiveService: archiveService,
+            fileSystemService: fileSystemService,
+            notificationSink: { title, message in
+                notificationService.showNotification(title: title, message: message)
+            }
+        )
         self.windowManager = wm
-        self.actionRouter = ActionRouter(windowManager: wm)
+        self.actionRouter = ActionRouter(
+            windowManager: wm,
+            dialogService: dialogService,
+            actionExecutor: actionExecutor,
+            activateApp: {
+                NSApp.activate(ignoringOtherApps: true)
+            },
+            notificationSink: { title, message in
+                notificationService.showNotification(title: title, message: message)
+            }
+        )
         
         print("7ZMac: [AppDelegate] applicationDidFinishLaunching - App Ready")
         self.isAppReady = true

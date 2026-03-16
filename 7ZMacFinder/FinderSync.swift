@@ -17,24 +17,9 @@ class FinderSync: FIFinderSync {
     )
     
     // MARK: - Supported Archive Extensions
-    // Keep in sync with SupportedArchiveTypes.swift in the main app target.
+    // Shared with the main app via ArchiveTypeCatalog.
     
-    private let archiveExtensions: Set<String> = {
-        var exts: Set<String> = [
-            "7z", "zip", "tar", "gz", "bz2", "xz", "rar",
-            "iso", "cab", "lzma", "lzh", "arj", "z", "cpio",
-            "rpm", "deb", "wim", "vhd", "vhdx",
-            "tgz", "tbz2", "txz"
-        ]
-        // Add split volume extensions: 001-999, z01-z99
-        for i in 1...999 {
-            exts.insert(String(format: "%03d", i))
-        }
-        for i in 1...99 {
-            exts.insert(String(format: "z%02d", i))
-        }
-        return exts
-    }()
+    private let archiveExtensions = ArchiveTypeCatalog.finderRecognizedExtensions
     
     // MARK: - Init
     

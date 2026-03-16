@@ -206,4 +206,42 @@ final class SplitArchiveDetectorTests: XCTestCase {
         XCTAssertTrue(names.contains("split.7z.001"))
         XCTAssertTrue(names.contains("standalone.zip"))
     }
+
+    // MARK: - extraction targets
+
+    func testMakeExtractionTargetsForSameDirectory() {
+        let files = [
+            URL(fileURLWithPath: "/path/archive.7z")
+        ]
+
+        let targets = SplitArchiveDetector.makeExtractionTargets(files: files, strategy: .sameDirectory)
+
+        XCTAssertEqual(targets.count, 1)
+        XCTAssertEqual(targets.first?.archiveURL.path, "/path/archive.7z")
+        XCTAssertEqual(targets.first?.destinationURL.path, "/path")
+    }
+
+    func testMakeExtractionTargetsForSubfolderUsesArchiveName() {
+        let files = [
+            URL(fileURLWithPath: "/path/archive.7z")
+        ]
+
+        let targets = SplitArchiveDetector.makeExtractionTargets(files: files, strategy: .subfolder)
+
+        XCTAssertEqual(targets.count, 1)
+        XCTAssertEqual(targets.first?.destinationURL.path, "/path/archive")
+    }
+
+    func testMakeExtractionTargetsForSubfolderUsesSplitBaseName() {
+        let files = [
+            URL(fileURLWithPath: "/path/archive.7z.001"),
+            URL(fileURLWithPath: "/path/archive.7z.002")
+        ]
+
+        let targets = SplitArchiveDetector.makeExtractionTargets(files: files, strategy: .subfolder)
+
+        XCTAssertEqual(targets.count, 1)
+        XCTAssertEqual(targets.first?.archiveURL.lastPathComponent, "archive.7z.001")
+        XCTAssertEqual(targets.first?.destinationURL.path, "/path/archive")
+    }
 }

@@ -44,6 +44,10 @@ final class FileSystemService: FileSystemServiceProtocol {
             return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
         }
     }
+
+    func createDirectory(at url: URL) throws {
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    }
     
     /// Open a file with the system's default application.
     func openWithDefaultApp(_ url: URL) {

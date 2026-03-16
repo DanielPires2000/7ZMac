@@ -4,6 +4,9 @@ import Foundation
 protocol FileSystemServiceProtocol {
     /// List the contents of a directory, sorted: folders first, then files alphabetically.
     func listDirectory(at url: URL) throws -> [FileItem]
+
+    /// Create a directory if it does not exist.
+    func createDirectory(at url: URL) throws
     
     /// Open a file with the system's default application.
     func openWithDefaultApp(_ url: URL)

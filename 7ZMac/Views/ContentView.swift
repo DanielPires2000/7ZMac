@@ -65,7 +65,7 @@ struct ContentView: View {
                 Text(error)
                     .foregroundColor(.secondary)
                 Button("Go Home") {
-                    viewModel.navigateTo(FileManager.default.homeDirectoryForCurrentUser)
+                    viewModel.navigateHome()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

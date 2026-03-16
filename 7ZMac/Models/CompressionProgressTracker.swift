@@ -41,6 +41,17 @@ final class CompressionProgressTracker: ObservableObject {
         errorMessage = nil
         startTime = Date()
         progress = 0
+        filesProcessed = 0
+        totalFiles = 0
+        totalSize = ""
+        processedSize = ""
+        compressedSize = ""
+        speed = ""
+        compressionRatio = ""
+        currentFileName = ""
+        statusText = "Preparing..."
+        totalSizeBytes = 0
+        processedBytes = 0
         
         // Extract archive name from arguments
         if let aIdx = arguments.firstIndex(of: "a"), aIdx + 1 < arguments.count {
@@ -186,6 +197,9 @@ final class CompressionProgressTracker: ObservableObject {
             let percentStr = line[match].trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "%", with: "")
             if let pct = Double(percentStr) {
                 progress = pct
+                updateProcessedSize()
+                updateSpeed()
+                updateCompressionRatio()
                 updateEstimatedTime()
             }
             
@@ -208,6 +222,8 @@ final class CompressionProgressTracker: ObservableObject {
             }
             if let sizeMatch = line.range(of: #",\s*(.+)$"#, options: .regularExpression) {
                 totalSize = line[sizeMatch].trimmingCharacters(in: .init(charactersIn: ", "))
+                totalSizeBytes = Self.parseByteCount(from: totalSize)
+                updateProcessedSize()
             }
             statusText = "Adding..."
             return
@@ -224,6 +240,7 @@ final class CompressionProgressTracker: ObservableObject {
         // "Archive size: 123456 bytes"
         if line.hasPrefix("Archive size:") {
             compressedSize = line.replacingOccurrences(of: "Archive size:", with: "").trimmingCharacters(in: .whitespaces)
+            updateCompressionRatio()
             return
         }
         
@@ -237,6 +254,9 @@ final class CompressionProgressTracker: ObservableObject {
         // "Everything is Ok"
         if line.contains("Everything is Ok") {
             progress = 100
+            updateProcessedSize(forceComplete: true)
+            updateSpeed()
+            updateCompressionRatio()
             statusText = "Completed"
             return
         }
@@ -251,6 +271,8 @@ final class CompressionProgressTracker: ObservableObject {
         if line.hasSuffix(")") && line.contains("file") {
             if let sizeMatch = line.range(of: #"\((.+)\)"#, options: .regularExpression) {
                 totalSize = String(line[sizeMatch]).trimmingCharacters(in: .init(charactersIn: "()"))
+                totalSizeBytes = Self.parseByteCount(from: totalSize)
+                updateProcessedSize()
             }
             if let filesMatch = line.range(of: #"(\d+)\s+file"#, options: .regularExpression) {
                 let numStr = line[filesMatch].components(separatedBy: " ").first ?? ""
@@ -267,5 +289,78 @@ final class CompressionProgressTracker: ObservableObject {
         let elapsed = Date().timeIntervalSince(start)
         let totalEstimated = elapsed / (progress / 100.0)
         estimatedRemainingTime = max(0, totalEstimated - elapsed)
+    }
+
+    private func updateProcessedSize(forceComplete: Bool = false) {
+        guard totalSizeBytes > 0 else {
+            processedSize = ""
+            return
+        }
+
+        let effectiveProgress = forceComplete ? 100.0 : progress
+        processedBytes = Int64((effectiveProgress / 100.0) * Double(totalSizeBytes))
+        processedSize = ByteCountFormatter.string(fromByteCount: processedBytes, countStyle: .file)
+    }
+
+    private func updateSpeed() {
+        guard let start = startTime else {
+            speed = ""
+            return
+        }
+
+        let elapsed = Date().timeIntervalSince(start)
+        guard elapsed > 0.5, processedBytes > 0 else {
+            speed = ""
+            return
+        }
+
+        let bytesPerSecond = Double(processedBytes) / elapsed
+        let formatted = ByteCountFormatter.string(fromByteCount: Int64(bytesPerSecond), countStyle: .file)
+        speed = "\(formatted)/s"
+    }
+
+    private func updateCompressionRatio() {
+        let packedBytes = Self.parseByteCount(from: compressedSize)
+        guard totalSizeBytes > 0, packedBytes > 0 else {
+            compressionRatio = ""
+            return
+        }
+
+        let ratio = (Double(packedBytes) / Double(totalSizeBytes)) * 100
+        compressionRatio = String(format: "%.1f%%", ratio)
+    }
+
+    private static func parseByteCount(from text: String) -> Int64 {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return 0 }
+
+        if let value = Int64(trimmed.components(separatedBy: .whitespaces).first ?? "") {
+            return value
+        }
+
+        let scanner = Scanner(string: trimmed.replacingOccurrences(of: ",", with: "."))
+        guard let number = scanner.scanDouble() else { return 0 }
+
+        let unit = trimmed
+            .uppercased()
+            .components(separatedBy: CharacterSet.whitespaces)
+            .dropFirst()
+            .joined(separator: " ")
+
+        let multiplier: Double
+        switch unit {
+        case let value where value.hasPrefix("KIB") || value.hasPrefix("KB"):
+            multiplier = 1_024
+        case let value where value.hasPrefix("MIB") || value.hasPrefix("MB"):
+            multiplier = 1_024 * 1_024
+        case let value where value.hasPrefix("GIB") || value.hasPrefix("GB"):
+            multiplier = 1_024 * 1_024 * 1_024
+        case let value where value.hasPrefix("TIB") || value.hasPrefix("TB"):
+            multiplier = 1_024 * 1_024 * 1_024 * 1_024
+        default:
+            multiplier = 1
+        }
+
+        return Int64(number * multiplier)
     }
 }

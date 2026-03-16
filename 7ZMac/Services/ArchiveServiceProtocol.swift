@@ -1,7 +1,7 @@
 import Foundation
 
 /// Protocol defining archive operations. Enables DI and testability.
-protocol ArchiveServiceProtocol {
+protocol ArchiveServiceProtocol: AnyObject {
     /// List the contents of an archive file.
     func listContents(archive: URL) async throws -> [ArchiveItem]
     

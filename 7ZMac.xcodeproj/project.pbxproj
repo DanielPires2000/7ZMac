@@ -70,6 +70,11 @@
 			path = 7ZMacTests;
 			sourceTree = "<group>";
 		};
+		3F4A1D072FD0000000AA0001 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		3F898B812F433D8000981BB6 /* 7ZMacFinder */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -117,6 +122,7 @@
 			isa = PBXGroup;
 			children = (
 				3FE81FB72F42605900392A57 /* 7ZMac */,
+				3F4A1D072FD0000000AA0001 /* Shared */,
 				3F3EEBDC2F42A98E007AC1FE /* 7ZMacTests */,
 				3F898B812F433D8000981BB6 /* 7ZMacFinder */,
 				3FE81FB62F42605900392A57 /* Products */,
@@ -172,6 +178,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				3F4A1D072FD0000000AA0001 /* Shared */,
 				3F898B812F433D8000981BB6 /* 7ZMacFinder */,
 			);
 			name = 7ZMacFinder;
@@ -196,6 +203,7 @@
 				3F898B862F433D8000981BB6 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				3F4A1D072FD0000000AA0001 /* Shared */,
 				3FE81FB72F42605900392A57 /* 7ZMac */,
 			);
 			name = 7ZMac;

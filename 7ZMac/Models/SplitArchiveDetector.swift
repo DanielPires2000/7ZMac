@@ -12,6 +12,16 @@ import os
 ///
 /// 7zz only needs the **first volume** — it finds the rest automatically.
 enum SplitArchiveDetector {
+
+    enum ExtractionStrategy {
+        case sameDirectory
+        case subfolder
+    }
+
+    struct ExtractionTarget {
+        let archiveURL: URL
+        let destinationURL: URL
+    }
     
     /// Result of grouping files into split archives and standalone files.
     struct GroupResult {
@@ -185,5 +195,33 @@ enum SplitArchiveDetector {
         }
         
         return resolved
+    }
+
+    static func makeExtractionTargets(files: [URL], strategy: ExtractionStrategy) -> [ExtractionTarget] {
+        resolveForExtraction(files: files).map { archiveURL in
+            let destinationURL: URL
+
+            switch strategy {
+            case .sameDirectory:
+                destinationURL = archiveURL.deletingLastPathComponent()
+
+            case .subfolder:
+                let folderName = defaultExtractionFolderName(for: archiveURL)
+                destinationURL = archiveURL.deletingLastPathComponent().appendingPathComponent(folderName)
+            }
+
+            return ExtractionTarget(
+                archiveURL: archiveURL,
+                destinationURL: destinationURL
+            )
+        }
+    }
+
+    private static func defaultExtractionFolderName(for archiveURL: URL) -> String {
+        if let baseName = baseName(of: archiveURL) {
+            return (baseName as NSString).deletingPathExtension
+        }
+
+        return archiveURL.deletingPathExtension().lastPathComponent
     }
 }

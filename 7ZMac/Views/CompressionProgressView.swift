@@ -17,6 +17,9 @@ struct CompressionProgressView: View {
                     statRow("Elapsed time:", formatTime(tracker.elapsedTime))
                     statRow("Remaining time:", tracker.progress > 0 ? formatTime(tracker.estimatedRemainingTime) : "—")
                     statRow("Files:", "\(tracker.filesProcessed)" + (tracker.totalFiles > 0 ? " / \(tracker.totalFiles)" : ""))
+                    if !tracker.processedSize.isEmpty {
+                        statRow("Processed:", tracker.processedSize)
+                    }
                 }
                 
                 Spacer()
@@ -29,8 +32,11 @@ struct CompressionProgressView: View {
                     if !tracker.compressedSize.isEmpty {
                         statRow("Compressed:", tracker.compressedSize)
                     }
-                    if tracker.progress > 0 {
-                        statRow("Ratio:", String(format: "%.0f%%", tracker.progress > 0 ? min(100, (1 - tracker.progress / 100) * 100 + tracker.progress) : 0))
+                    if !tracker.compressionRatio.isEmpty {
+                        statRow("Ratio:", tracker.compressionRatio)
+                    }
+                    if !tracker.speed.isEmpty {
+                        statRow("Speed:", tracker.speed)
                     }
                 }
             }
