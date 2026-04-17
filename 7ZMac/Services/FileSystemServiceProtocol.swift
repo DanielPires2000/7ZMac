@@ -3,7 +3,7 @@ import Foundation
 /// Protocol for filesystem operations. Enables DI and testability.
 protocol FileSystemServiceProtocol {
     /// List the contents of a directory, sorted: folders first, then files alphabetically.
-    func listDirectory(at url: URL) throws -> [FileItem]
+    func listDirectory(at url: URL) async throws -> [FileItem]
 
     /// Create a directory if it does not exist.
     func createDirectory(at url: URL) throws

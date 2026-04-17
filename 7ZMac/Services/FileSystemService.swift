@@ -5,44 +5,62 @@ import AppKit
 final class FileSystemService: FileSystemServiceProtocol {
     
     /// List the contents of a directory, sorted: folders first, then files alphabetically.
-    func listDirectory(at url: URL) throws -> [FileItem] {
-        let fileManager = FileManager.default
-        let resourceKeys: [URLResourceKey] = [
-            .nameKey, .fileSizeKey, .contentModificationDateKey,
-            .isDirectoryKey, .isHiddenKey
-        ]
+    func listDirectory(at url: URL) async throws -> [FileItem] {
+        // Capture archive extensions locally BEFORE entering detached task
+        // so we never cross actor boundaries inside the closure.
+        let archiveExts = ArchiveTypeCatalog.baseExtensions
         
-        let contents = try fileManager.contentsOfDirectory(
-            at: url,
-            includingPropertiesForKeys: resourceKeys,
-            options: [.skipsHiddenFiles]
-        )
-        
-        let items = contents.compactMap { url -> FileItem? in
-            guard let resources = try? url.resourceValues(forKeys: Set(resourceKeys)) else {
-                return nil
-            }
+        return try await Task.detached(priority: .userInitiated) {
+            let fileManager = FileManager.default
+            let resourceKeys: [URLResourceKey] = [
+                .nameKey, .fileSizeKey, .contentModificationDateKey,
+                .isDirectoryKey, .isHiddenKey
+            ]
             
-            let isDirectory = resources.isDirectory ?? false
-            let isArchive = !isDirectory && SupportedArchiveTypes.isArchive(url)
-            
-            return FileItem(
-                url: url,
-                name: resources.name ?? url.lastPathComponent,
-                size: Int64(resources.fileSize ?? 0),
-                modifiedDate: resources.contentModificationDate ?? Date.distantPast,
-                isDirectory: isDirectory,
-                isArchive: isArchive
+            let contents = try fileManager.contentsOfDirectory(
+                at: url,
+                includingPropertiesForKeys: resourceKeys,
+                options: [.skipsHiddenFiles]
             )
-        }
-        
-        // Sort: folders first, then alphabetically
-        return items.sorted { a, b in
-            if a.isDirectory != b.isDirectory {
-                return a.isDirectory
+            
+            let items = contents.compactMap { itemUrl -> FileItem? in
+                guard let resources = try? itemUrl.resourceValues(forKeys: Set(resourceKeys)) else {
+                    return nil
+                }
+                
+                let isDirectory = resources.isDirectory ?? false
+                
+                // Inline archive check using local captured set — no actor crossing
+                let isArchive: Bool
+                if isDirectory {
+                    isArchive = false
+                } else {
+                    let ext = itemUrl.pathExtension.lowercased()
+                    let name = itemUrl.lastPathComponent.lowercased()
+                    let hasDoubleExt = name.hasSuffix(".tar.gz")
+                        || name.hasSuffix(".tar.bz2")
+                        || name.hasSuffix(".tar.xz")
+                    isArchive = archiveExts.contains(ext) || hasDoubleExt
+                }
+                
+                return FileItem(
+                    url: itemUrl,
+                    name: resources.name ?? itemUrl.lastPathComponent,
+                    size: Int64(resources.fileSize ?? 0),
+                    modifiedDate: resources.contentModificationDate ?? Date.distantPast,
+                    isDirectory: isDirectory,
+                    isArchive: isArchive
+                )
             }
-            return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
-        }
+            
+            // Sort: folders first, then alphabetically
+            return items.sorted { a, b in
+                if a.isDirectory != b.isDirectory {
+                    return a.isDirectory
+                }
+                return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+            }
+        }.value
     }
 
     func createDirectory(at url: URL) throws {

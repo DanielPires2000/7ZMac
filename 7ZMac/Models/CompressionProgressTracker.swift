@@ -123,8 +123,8 @@ final class CompressionProgressTracker: ObservableObject {
         // Read stdout asynchronously line by line
         let handle = stdoutPipe.fileHandleForReading
         
-        // Read in a background context
-        let data = await withCheckedContinuation { (continuation: CheckedContinuation<Data, Never>) in
+        // Read in a background context for stdout
+        async let stdoutDataTask = withCheckedContinuation { (continuation: CheckedContinuation<Data, Never>) in
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 var allData = Data()
                 var lineBuffer = Data()
@@ -165,6 +165,14 @@ final class CompressionProgressTracker: ObservableObject {
             }
         }
         
+        // Read stderr concurrently to prevent pipe deadlocks
+        async let stderrDataTask = Task.detached {
+            stderrPipe.fileHandleForReading.readDataToEndOfFile()
+        }.value
+        
+        let stdoutData = await stdoutDataTask
+        let stderrDataRaw = await stderrDataTask
+        
         task.waitUntilExit()
         
         let exitCode = task.terminationStatus
@@ -180,8 +188,8 @@ final class CompressionProgressTracker: ObservableObject {
             } else if exitCode == -1 || self?.statusText == "Cancelled" {
                 // Already handled by cancel()
             } else {
-                let stderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                let stdout = String(data: data, encoding: .utf8) ?? ""
+                let stderr = String(data: stderrDataRaw, encoding: .utf8) ?? ""
+                let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
                 self?.errorMessage = stderr.isEmpty ? stdout : stderr
                 self?.statusText = "Error (exit code \(exitCode))"
             }

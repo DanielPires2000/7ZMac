@@ -212,13 +212,11 @@ struct AddToArchiveRightColumn: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            
             row("Update mode:") {
                 Picker("", selection: $options.updateMode) {
                     ForEach(UpdateMode.allCases) { Text($0.displayName).tag($0) }
                 }
                 .labelsHidden()
-                .frame(maxWidth: .infinity)
             }
             
             row("Path mode:") {
@@ -226,7 +224,6 @@ struct AddToArchiveRightColumn: View {
                     ForEach(PathMode.allCases) { Text($0.displayName).tag($0) }
                 }
                 .labelsHidden()
-                .frame(maxWidth: .infinity)
             }
             
             // ── Options GroupBox ──
@@ -304,13 +301,13 @@ struct AddToArchiveRightColumn: View {
         }
         .frame(maxWidth: .infinity)
     }
-    
     private func row<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
         HStack(spacing: 8) {
             Text(label)
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-                .frame(width: labelWidth, alignment: .trailing)
+                .frame( alignment: .trailing)
+            Spacer()
             content()
         }
     }

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Shared archive extension catalog used by both the main app and Finder extension.
-enum ArchiveTypeCatalog {
+enum ArchiveTypeCatalog: Sendable {
     static let baseExtensions: Set<String> = [
         "7z", "zip", "rar", "tar", "gz", "bz2", "xz", "lzma",
         "cab", "iso", "wim", "arj", "lzh", "z",
@@ -26,7 +26,7 @@ enum ArchiveTypeCatalog {
 
     static let finderRecognizedExtensions = baseExtensions.union(splitVolumeExtensions)
 
-    static func hasSupportedDoubleExtension(_ filename: String) -> Bool {
+    nonisolated static func hasSupportedDoubleExtension(_ filename: String) -> Bool {
         let lowercased = filename.lowercased()
         return lowercased.hasSuffix(".tar.gz")
             || lowercased.hasSuffix(".tar.bz2")

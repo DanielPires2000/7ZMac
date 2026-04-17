@@ -5,6 +5,12 @@
 
 set -e
 
+# Skip the web request for 7zz if we are just compiling for SwiftUI Previews
+if [ "${ENABLE_PREVIEWS}" == "YES" ]; then
+    echo "Skipping 7zz download for SwiftUI Previews to save time."
+    exit 0
+fi
+
 # Configuration
 URL_BASE="https://7-zip.org"
 TARGET_DIR="${SRCROOT}/7ZMac/Resources"

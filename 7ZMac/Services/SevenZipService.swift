@@ -73,8 +73,17 @@ final class SevenZipService: ArchiveServiceProtocol {
 
             try task.run()
 
-            let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-            let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            // Read output streams concurrently to avoid deadlocks when stdout/stderr buffer fills up
+            async let stdoutTask = Task.detached {
+                stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+            }.value
+            
+            async let stderrTask = Task.detached {
+                stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            }.value
+
+            let stdoutData = await stdoutTask
+            let stderrData = await stderrTask
             task.waitUntilExit()
 
             let combinedData = stdoutData + stderrData

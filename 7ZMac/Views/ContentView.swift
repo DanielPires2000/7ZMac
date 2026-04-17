@@ -136,3 +136,23 @@ struct ContentView: View {
         }
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview("ContentView - Fast Mock") {
+    let _ = {
+        // Reset any previous container state
+        DIContainer.shared.reset()
+        
+        // Inject false dependencies so it doesn't scan the real Hard Drive!
+        DIContainer.shared.registerSingleton(FileSystemServiceProtocol.self) { MockFileSystemService() }
+        DIContainer.shared.registerSingleton(ArchiveServiceProtocol.self) { MockArchiveService() }
+        DIContainer.shared.registerSingleton(FileDialogServiceProtocol.self) { MockFileDialogService() }
+        return ()
+    }()
+    
+    // Create the ViewModel and attach to View
+    return ContentView()
+}
+#endif

@@ -96,12 +96,23 @@ final class FileManagerViewModel: ObservableObject {
     func loadCurrentDirectory() {
         guard case .fileSystem = navigationMode else { return }
         
-        do {
-            fileItems = try fileSystemService.listDirectory(at: currentPath)
-            errorMessage = nil
-        } catch {
-            errorMessage = "Cannot access: \(error.localizedDescription)"
-            fileItems = []
+        let path = currentPath
+        
+        // Show loading indicator
+        isProcessing = true
+        
+        Task {
+            do {
+                // The service itself now handles detaching to a background thread to prevent Main Thread stutters
+                let items = try await self.fileSystemService.listDirectory(at: path)
+                
+                self.fileItems = items
+                self.errorMessage = nil
+            } catch {
+                self.errorMessage = "Cannot access: \(error.localizedDescription)"
+                self.fileItems = []
+            }
+            self.isProcessing = false
         }
     }
     
