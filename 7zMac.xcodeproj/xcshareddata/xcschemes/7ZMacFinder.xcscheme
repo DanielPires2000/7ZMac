@@ -19,7 +19,7 @@
                BlueprintIdentifier = "3F898B7F2F433D8000981BB6"
                BuildableName = "7ZMacFinder.appex"
                BlueprintName = "7ZMacFinder"
-               ReferencedContainer = "container:7ZMac.xcodeproj">
+               ReferencedContainer = "container:7zMac.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -33,7 +33,7 @@
                BlueprintIdentifier = "3FE81FB42F42605900392A57"
                BuildableName = "7ZMac.app"
                BlueprintName = "7ZMac"
-               ReferencedContainer = "container:7ZMac.xcodeproj">
+               ReferencedContainer = "container:7zMac.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -73,7 +73,7 @@
             BlueprintIdentifier = "3FE81FB42F42605900392A57"
             BuildableName = "7ZMac.app"
             BlueprintName = "7ZMac"
-            ReferencedContainer = "container:7ZMac.xcodeproj">
+            ReferencedContainer = "container:7zMac.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </LaunchAction>
@@ -92,7 +92,7 @@
             BlueprintIdentifier = "3FE81FB42F42605900392A57"
             BuildableName = "7ZMac.app"
             BlueprintName = "7ZMac"
-            ReferencedContainer = "container:7ZMac.xcodeproj">
+            ReferencedContainer = "container:7zMac.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

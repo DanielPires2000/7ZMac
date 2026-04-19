@@ -21,6 +21,22 @@ class FinderSync: FIFinderSync {
     
     private let archiveExtensions = ArchiveTypeCatalog.finderRecognizedExtensions
     
+    // MARK: - App Info
+    
+    private let appName: String = {
+        let extensionURL = Bundle.main.bundleURL
+        let appURL = extensionURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        if let appBundle = Bundle(url: appURL),
+           let name = appBundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? appBundle.object(forInfoDictionaryKey: "CFBundleName") as? String {
+            return name
+        }
+        
+        let bundleName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String 
+            ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String 
+            ?? "App"
+        return bundleName.replacingOccurrences(of: "Finder", with: "").trimmingCharacters(in: .whitespaces)
+    }()
+    
     // MARK: - Init
     
     override init() {
@@ -29,51 +45,51 @@ class FinderSync: FIFinderSync {
         FIFinderSyncController.default().directoryURLs = [URL(fileURLWithPath: "/")]
     }
     
-    // MARK: - Toolbar
-    
-    override var toolbarItemName: String { "7ZMac" }
-    override var toolbarItemToolTip: String { "7ZMac Archive Manager" }
-    override var toolbarItemImage: NSImage {
-        NSImage(named: NSImage.cautionName)!
-    }
-    
     // MARK: - Context Menu
     
-    override func menu(for menuKind: FIMenuKind) -> NSMenu {
-        let menu = NSMenu(title: "7ZMac")
+    override func menu(for menuKind: FIMenuKind) -> NSMenu? {
+        // Do not show the menu when right-clicking on empty space (like the Desktop or folder background)
+        guard menuKind == .contextualMenuForItems else { return nil }
         
         let selectedItems = FIFinderSyncController.default().selectedItemURLs() ?? []
         let hasArchives = selectedItems.contains { archiveExtensions.contains($0.pathExtension.lowercased()) }
         let hasFiles = !selectedItems.isEmpty
         
+        guard hasFiles else { return nil }
+        
+        let rootMenu = NSMenu(title: "")
+        let mainItem = NSMenuItem(title: appName, action: nil, keyEquivalent: "")
+        let submenu = NSMenu(title: appName)
+        
         // ── Compression Options ──
-        if hasFiles {
-            menu.addItem(NSMenuItem(title: "Add to Archive...", action: #selector(addToArchive(_:)), keyEquivalent: ""))
-            
-            if let first = selectedItems.first {
-                let name = first.deletingPathExtension().lastPathComponent
-                menu.addItem(NSMenuItem(title: "Compress to \"\(name).7z\"", action: #selector(quickCompress7z(_:)), keyEquivalent: ""))
-                menu.addItem(NSMenuItem(title: "Compress to \"\(name).zip\"", action: #selector(quickCompressZip(_:)), keyEquivalent: ""))
-            }
+        submenu.addItem(NSMenuItem(title: "Add to Archive...", action: #selector(addToArchive(_:)), keyEquivalent: ""))
+        
+        if let first = selectedItems.first {
+            let name = first.deletingPathExtension().lastPathComponent
+            submenu.addItem(NSMenuItem(title: "Compress to \"\(name).7z\"", action: #selector(quickCompress7z(_:)), keyEquivalent: ""))
+            submenu.addItem(NSMenuItem(title: "Compress to \"\(name).zip\"", action: #selector(quickCompressZip(_:)), keyEquivalent: ""))
         }
         
         // ── Extraction Options ──
         if hasArchives {
-            if hasFiles { menu.addItem(NSMenuItem.separator()) }
+            submenu.addItem(NSMenuItem.separator())
             
-            menu.addItem(NSMenuItem(title: "Extract files...", action: #selector(extractFiles(_:)), keyEquivalent: ""))
-            menu.addItem(NSMenuItem(title: "Extract Here", action: #selector(extractHere(_:)), keyEquivalent: ""))
+            submenu.addItem(NSMenuItem(title: "Extract files...", action: #selector(extractFiles(_:)), keyEquivalent: ""))
+            submenu.addItem(NSMenuItem(title: "Extract Here", action: #selector(extractHere(_:)), keyEquivalent: ""))
             
             if let firstArchive = selectedItems.first(where: { archiveExtensions.contains($0.pathExtension.lowercased()) }) {
                 let folderName = firstArchive.deletingPathExtension().lastPathComponent
-                menu.addItem(NSMenuItem(title: "Extract to \"\(folderName)/\"", action: #selector(extractToSubfolder(_:)), keyEquivalent: ""))
+                submenu.addItem(NSMenuItem(title: "Extract to \"\(folderName)/\"", action: #selector(extractToSubfolder(_:)), keyEquivalent: ""))
             }
             
-            menu.addItem(NSMenuItem.separator())
-            menu.addItem(NSMenuItem(title: "Test Archive", action: #selector(testArchive(_:)), keyEquivalent: ""))
+            submenu.addItem(NSMenuItem.separator())
+            submenu.addItem(NSMenuItem(title: "Test Archive", action: #selector(testArchive(_:)), keyEquivalent: ""))
         }
         
-        return menu
+        mainItem.submenu = submenu
+        rootMenu.addItem(mainItem)
+        
+        return rootMenu
     }
     
     // MARK: - Compression Actions

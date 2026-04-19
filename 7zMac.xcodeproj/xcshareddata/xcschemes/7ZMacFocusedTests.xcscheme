@@ -18,7 +18,7 @@
                BlueprintIdentifier = "3FE81FB42F42605900392A57"
                BuildableName = "7ZMac.app"
                BlueprintName = "7ZMac"
-               ReferencedContainer = "container:7ZMac.xcodeproj">
+               ReferencedContainer = "container:7zMac.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -32,7 +32,7 @@
                BlueprintIdentifier = "3F3EEBDA2F42A98E007AC1FE"
                BuildableName = "7ZMacTests.xctest"
                BlueprintName = "7ZMacTests"
-               ReferencedContainer = "container:7ZMac.xcodeproj">
+               ReferencedContainer = "container:7zMac.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -48,7 +48,7 @@
             BlueprintIdentifier = "3FE81FB42F42605900392A57"
             BuildableName = "7ZMac.app"
             BlueprintName = "7ZMac"
-            ReferencedContainer = "container:7ZMac.xcodeproj">
+            ReferencedContainer = "container:7zMac.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <TestPlans>
@@ -75,7 +75,7 @@
             BlueprintIdentifier = "3FE81FB42F42605900392A57"
             BuildableName = "7ZMac.app"
             BlueprintName = "7ZMac"
-            ReferencedContainer = "container:7ZMac.xcodeproj">
+            ReferencedContainer = "container:7zMac.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -92,7 +92,7 @@
             BlueprintIdentifier = "3FE81FB42F42605900392A57"
             BuildableName = "7ZMac.app"
             BlueprintName = "7ZMac"
-            ReferencedContainer = "container:7ZMac.xcodeproj">
+            ReferencedContainer = "container:7zMac.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

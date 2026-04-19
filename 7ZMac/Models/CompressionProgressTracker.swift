@@ -188,9 +188,26 @@ final class CompressionProgressTracker: ObservableObject {
             } else if exitCode == -1 || self?.statusText == "Cancelled" {
                 // Already handled by cancel()
             } else {
-                let stderr = String(data: stderrDataRaw, encoding: .utf8) ?? ""
+                let stderr = String(data: stderrDataRaw, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
-                self?.errorMessage = stderr.isEmpty ? stdout : stderr
+                
+                var extractedError = ""
+                if !stderr.isEmpty {
+                    extractedError = stderr
+                } else {
+                    let lines = stdout.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+                    if let errIdx = lines.lastIndex(where: { $0.uppercased().contains("ERROR") }) {
+                        extractedError = lines[errIdx...].joined(separator: "\n")
+                    } else {
+                        extractedError = lines.suffix(4).joined(separator: "\n")
+                    }
+                }
+                
+                if extractedError.isEmpty {
+                    extractedError = "Unknown Error (Exit Code \(exitCode))"
+                }
+
+                self?.errorMessage = extractedError
                 self?.statusText = "Error (exit code \(exitCode))"
             }
         }

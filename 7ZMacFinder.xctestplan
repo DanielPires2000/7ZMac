@@ -20,7 +20,7 @@
   "testTargets" : [
     {
       "target" : {
-        "containerPath" : "container:7ZMac.xcodeproj",
+        "containerPath" : "container:7zMac.xcodeproj",
         "identifier" : "3F3EEBDA2F42A98E007AC1FE",
         "name" : "7ZMacTests"
       }

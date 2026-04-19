@@ -253,7 +253,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 3FE81FB02F42605900392A57 /* Build configuration list for PBXProject "7ZMac" */;
+			buildConfigurationList = 3FE81FB02F42605900392A57 /* Build configuration list for PBXProject "7zMac" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -392,7 +392,7 @@
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = 7ZMacFinder/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = 7ZMacFinder;
+				INFOPLIST_KEY_CFBundleDisplayName = 7zMacFinder;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -425,7 +425,7 @@
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = 7ZMacFinder/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = 7ZMacFinder;
+				INFOPLIST_KEY_CFBundleDisplayName = 7zMacFinder;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -587,6 +587,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = 7ZMac/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = 7zMac;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -622,6 +623,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = 7ZMac/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = 7zMac;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -661,7 +663,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		3FE81FB02F42605900392A57 /* Build configuration list for PBXProject "7ZMac" */ = {
+		3FE81FB02F42605900392A57 /* Build configuration list for PBXProject "7zMac" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3FE81FBE2F42605A00392A57 /* Debug */,
